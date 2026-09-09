@@ -45,11 +45,15 @@ input,select,textarea{background:#fbf8f2!important;border-color:#c9c1b8!importan
 .tx{border:1px solid #ddd1c5!important;border-radius:15px;padding:13px!important;margin:9px 0;background:#fffaf5;grid-template-columns:1fr auto!important}
 .txActions{display:flex;gap:12px;margin-top:7px}.editBtn,.del{border:0;background:none;padding:2px 0;font-size:13px}.editBtn{color:#6f5b85}.del{color:var(--red)}
 .txCategory{display:inline-block;padding:3px 8px;border-radius:999px;background:#efe6f6;margin-right:5px}
-.modal{position:fixed;inset:0;background:rgba(42,35,47,.42);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:12px}
-.modalSheet{width:min(720px,100%);max-height:88vh;overflow:auto;background:#fbf7ef;border:1px solid #bcb2a9;border-radius:22px 22px 16px 16px;padding:18px;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+.modal.hide{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(42,35,47,.42);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+.modalSheet{width:min(720px,100%);height:min(760px,calc(100dvh - 36px));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:#fbf7ef;border:1px solid #bcb2a9;border-radius:22px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.18)}
+.modalSheet>.sectionHead{position:sticky;top:-18px;z-index:4;background:#fbf7ef;padding:18px 0 12px;margin-top:-18px}
+#saveEdit{position:sticky;bottom:-18px;z-index:4;margin-bottom:-18px;padding-bottom:calc(16px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0}
+.editCustom{margin-top:8px}
 .iconBtn{border:1px solid var(--line);background:#fffaf5;border-radius:50%;width:36px;height:36px;font-size:16px}
 body.modalOpen{overflow:hidden}
-@media(max-width:500px){.categorySummary{grid-template-columns:1fr 1fr}.sectionHead{align-items:flex-start}.compactSelect{max-width:125px}.modal{padding:0}.modalSheet{border-radius:22px 22px 0 0;max-height:92vh}}
+@media(max-width:500px){.categorySummary{grid-template-columns:1fr 1fr}.sectionHead{align-items:flex-start}.compactSelect{max-width:125px}.modal{padding:0;align-items:stretch}.modalSheet{width:100%;height:100dvh;max-height:none;border-radius:0;border:0;padding:18px 16px 24px}.modalSheet>.sectionHead{top:-18px}.row{grid-template-columns:1fr}}
 
 </style></head><body><div class="wrap">
 <div class="hero">
@@ -57,7 +61,7 @@ body.modalOpen{overflow:hidden}
   <div class="apple">◉</div>
   <div>
     <div class="eyebrow">MONEY LOG — EST. 2026</div>
-    <h1>記一夏 <span style="font-size:.42em;font-weight:700;opacity:.55;vertical-align:middle">V7</span></h1>
+    <h1>記一夏 <span style="font-size:.42em;font-weight:700;opacity:.55;vertical-align:middle">V7.8</span></h1>
     <div class="sub">YOUR MONEY, YOUR STORY.</div>
   </div>
   <div class="windowBadge"><span>● ● ●</span><b>GOOD MONEY<br>BETTER DAYS</b></div>
@@ -102,10 +106,10 @@ body.modalOpen{overflow:hidden}
 
 <div id="incomeFields" class="hide">
   <label>收入來源</label>
-  <input id="incomeName" placeholder="例如 打工薪水">
+  <select id="incomeSource"></select><input id="incomeName" class="hide" placeholder="自行輸入收入來源">
   <div class="row">
     <div><label>入帳帳戶</label><select id="incomeAccount"></select></div>
-    <div><label>收入分類</label><select id="incomeCategory"></select></div>
+    <div><div style="display:none"><div style="display:none"><select id="incomeCategory"><option value="薪資">薪資</option><option value="家人給予">家人給予</option><option value="退款">退款</option><option value="獎金／補助">獎金／補助</option><option value="委託收入">委託收入</option><option value="投資收入">投資收入</option><option value="其他收入">其他收入</option></select></div></div></div>
   </div>
 </div>
 
@@ -150,12 +154,17 @@ body.modalOpen{overflow:hidden}
 <div class="card">
   <div class="sectionHead">
     <div><strong>記帳紀錄</strong><div class="meta" id="listHint">條列查看；可依分類篩選，也可以編輯每一筆紀錄。</div></div>
-    <select id="recordTypeFilter" class="compactSelect">
-      <option value="all">全部類型</option>
-      <option value="expense">只看支出</option>
-      <option value="income">只看收入</option>
-      <option value="transfer">只看轉帳</option>
-    </select>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <select id="recordTypeFilter" class="compactSelect">
+        <option value="all">全部類型</option>
+        <option value="expense">只看支出</option>
+        <option value="income">只看收入</option>
+        <option value="transfer">只看轉帳</option>
+      </select>
+      <select id="recordCategoryFilter" class="compactSelect">
+        <option value="">全部分類</option>
+      </select>
+    </div>
   </div>
   <div id="activeFilter" class="activeFilter hide"></div>
   <div id="list"></div>
@@ -173,7 +182,7 @@ body.modalOpen{overflow:hidden}
     <div id="editExpenseFields">
       <label>金額</label><input id="editAmount" type="number" inputmode="decimal" min="0">
       <label>分類</label><select id="editCategory"></select>
-      <label>店家／用途</label><input id="editName">
+      <label>店家／用途</label><select id="editMerchant"></select><input id="editName" class="editCustom hide" placeholder="自行輸入店家／用途">
       <div class="row">
         <div><label>付款方式</label><select id="editPayment"></select></div>
         <div><label>扣款帳戶</label><select id="editAccount"></select></div>
@@ -184,7 +193,7 @@ body.modalOpen{overflow:hidden}
       <label>金額</label><input id="editIncomeAmount" type="number" inputmode="decimal" min="0">
       <label>收入來源</label><input id="editIncomeName">
       <div class="row">
-        <div><label>收入分類</label><select id="editIncomeCategory"></select></div>
+        <div><label style="display:none">收入分類</label><select id="editIncomeCategory"></select></div>
         <div><label>入帳帳戶</label><select id="editIncomeAccount"></select></div>
       </div>
       <label>備註</label><textarea id="editIncomeNote"></textarea>
@@ -200,6 +209,7 @@ body.modalOpen{overflow:hidden}
       <label>備註</label><textarea id="editTransferNote"></textarea>
     </div>
     <button class="primary" id="saveEdit" type="button">儲存修改</button>
+    <button class="btn" id="cancelEdit" type="button" style="margin-top:10px">取消</button>
   </div>
 </div>
 </div><script>
@@ -221,6 +231,24 @@ const DEFAULT_MERCHANTS={
 "投資":["ETF"],
 "其他":[]
 };
+const DEFAULT_INCOME_SOURCES={
+"薪資":["薪水","打工薪資"],
+"家人給予":["家人給予","生活費"],
+"退款":["購物退款","訂單退款"],
+"獎金／補助":["獎金","補助","獎學金"],
+"委託收入":["委託收入"],
+"投資收入":["ETF配息","股票股利","利息"],
+"其他收入":[]
+};
+const INCOME_SOURCE_KEY="ql74_income_sources";
+function incomeSourceData(){
+  let saved={};try{saved=JSON.parse(localStorage.getItem(INCOME_SOURCE_KEY)||"{}")}catch(e){}
+  let out=JSON.parse(JSON.stringify(DEFAULT_INCOME_SOURCES));
+  Object.keys(saved||{}).forEach(k=>out[k]=[...new Set([...(out[k]||[]),...(Array.isArray(saved[k])?saved[k]:[])])]);
+  return out;
+}
+function saveIncomeSources(v){localStorage.setItem(INCOME_SOURCE_KEY,JSON.stringify(v))}
+
 const $=x=>document.getElementById(x);
 let mode="expense", categoryFilter="", editingId=null;
 const entries=()=>JSON.parse(localStorage.getItem("ql3_entries")||"[]");
@@ -284,11 +312,18 @@ function monthEntries(d){
 }
 function renderCategorySummary(month){
   let by={};EC.forEach(c=>by[c]=0);month.filter(x=>x.type==="expense").forEach(x=>by[x.category]=(by[x.category]||0)+Number(x.amount||0));
-  $("categorySummary").innerHTML=EC.map(c=>`<button class="categoryCard ${categoryFilter===c?"active":""}" data-cat="${esc(c)}"><small>${esc(c)}</small><strong>${money(by[c]||0)}</strong></button>`).join("");
+  $("categorySummary").innerHTML=EC.map(c=>`<button class="categoryCard ${categoryFilter===c?"active":""}" data-cat="${esc(c)}"><small>${esc(c)}</small><strong>${money(by[c]||0)}</strong></button>`).join(""); if($("recordCategoryFilter"))$("recordCategoryFilter").value=categoryFilter;
   document.querySelectorAll(".categoryCard").forEach(b=>b.onclick=()=>{categoryFilter=b.dataset.cat;render()});
   $("activeFilter").classList.toggle("hide",!categoryFilter);
   $("activeFilter").innerHTML=categoryFilter?`目前只看：<strong>${esc(categoryFilter)}</strong>　<button class="editBtn" id="inlineClear">取消篩選</button>`:"";
-  if($("inlineClear"))$("inlineClear").onclick=()=>{categoryFilter="";render()};
+  if($("inlineClear"))$("inlineClear").onclick=()=>{categoryFilter="";if($("recordCategoryFilter"))$("recordCategoryFilter").value="";render()};
+}
+function syncEditMerchant(preferred){
+  const cat=$("editCategory").value, list=merchantData()[cat]||[];
+  $("editMerchant").innerHTML="";
+  [...list,"其他／自行輸入"].forEach(x=>{let o=document.createElement("option");o.value=o.textContent=x;$("editMerchant").appendChild(o)});
+  if(preferred && list.includes(preferred)){ $("editMerchant").value=preferred; $("editName").value=""; $("editName").classList.add("hide"); }
+  else { $("editMerchant").value="其他／自行輸入"; $("editName").value=preferred||""; $("editName").classList.remove("hide"); }
 }
 function openEdit(id){
   editingId=Number(id);let x=entries().find(e=>e.id===editingId);if(!x)return;
@@ -296,15 +331,15 @@ function openEdit(id){
   $("editIncomeFields").classList.toggle("hide",x.type!=="income");
   $("editTransferFields").classList.toggle("hide",x.type!=="transfer");
   if(x.type==="expense"){
-    $("editAmount").value=x.amount;$("editCategory").value=x.category;$("editName").value=x.name||"";$("editPayment").value=x.payment||Object.keys(PAY)[0];syncEditAccount(x.account);$("editNote").value=x.note||"";
+    $("editAmount").value=x.amount;$("editCategory").value=x.category;syncEditMerchant(x.name||"");$("editPayment").value=x.payment||Object.keys(PAY)[0];syncEditAccount(x.account);$("editNote").value=x.note||"";
   }else if(x.type==="income"){
     $("editIncomeAmount").value=x.amount;$("editIncomeName").value=x.name||"";$("editIncomeCategory").value=x.category;$("editIncomeAccount").value=x.account;$("editIncomeNote").value=x.note||"";
   }else{
     $("editTransferAmount").value=x.amount;$("editTransferName").value=x.name||"";$("editFrom").value=x.from;$("editTo").value=x.to;$("editTransferKind").value=x.category||"帳戶互轉";$("editTransferNote").value=x.note||"";
   }
-  $("editModal").classList.remove("hide");document.body.classList.add("modalOpen");
+  $("editModal").classList.remove("hide");$("editModal").setAttribute("aria-hidden","false");document.body.classList.add("modalOpen");
 }
-function closeEdit(){editingId=null;$("editModal").classList.add("hide");document.body.classList.remove("modalOpen")}
+function closeEdit(){editingId=null;$("editModal").classList.add("hide");$("editModal").setAttribute("aria-hidden","true");document.body.classList.remove("modalOpen")}
 function syncEditAccount(preferred){
   let opts=PAY[$("editPayment").value]||ACC;fill($("editAccount"),opts);if(preferred&&opts.includes(preferred))$("editAccount").value=preferred;
 }
@@ -312,7 +347,7 @@ function saveEdit(){
   let d=entries(),i=d.findIndex(e=>e.id===editingId);if(i<0)return;let x=d[i];
   if(x.type==="expense"){
     let a=Number($("editAmount").value);if(!a||a<=0)return alert("金額要大於 0");
-    Object.assign(x,{amount:a,category:$("editCategory").value,name:$("editName").value.trim()||"未命名",payment:$("editPayment").value,account:$("editAccount").value,note:$("editNote").value.trim()});
+    let mn=$("editMerchant").value==="其他／自行輸入"?$("editName").value.trim():$("editMerchant").value; Object.assign(x,{amount:a,category:$("editCategory").value,name:mn||"未命名",payment:$("editPayment").value,account:$("editAccount").value,note:$("editNote").value.trim()});
   }else if(x.type==="income"){
     let a=Number($("editIncomeAmount").value);if(!a||a<=0)return alert("金額要大於 0");
     Object.assign(x,{amount:a,name:$("editIncomeName").value.trim()||"未命名",category:$("editIncomeCategory").value,account:$("editIncomeAccount").value,payment:"收入",note:$("editIncomeNote").value.trim()});
@@ -322,6 +357,26 @@ function saveEdit(){
     Object.assign(x,{amount:a,name:$("editTransferName").value.trim()||$("editTransferKind").value,from:$("editFrom").value,to:$("editTo").value,category:$("editTransferKind").value,payment:"轉帳",note:$("editTransferNote").value.trim()});
   }
   d[i]=x;localStorage.setItem("ql3_entries",JSON.stringify(d));closeEdit();render();
+}
+
+function setIncomeCategoryFromSource(){
+  const s=$("incomeSource").value;
+  let c="其他收入";
+  if(["薪資","打工薪資"].includes(s)) c="薪資";
+  else if(["家人給予","生活費"].includes(s)) c="家人給予";
+  else if(s==="退款") c="退款";
+  else if(["獎金","補助","獎學金"].includes(s)) c="獎金／補助";
+  else if(s==="委託收入") c="委託收入";
+  else if(s==="投資收入") c="投資收入";
+  $("incomeCategory").value=c;
+}
+
+function syncIncomeSource(selected=""){
+  const arr=["薪資","打工薪資","家人給予","生活費","退款","獎金","補助","獎學金","委託收入","投資收入"];
+  $("incomeSource").innerHTML=arr.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("")+'<option value="其他／自行輸入">其他／自行輸入</option>';
+  if(selected && arr.includes(selected)) $("incomeSource").value=selected;
+  else if(selected){$("incomeSource").value="其他／自行輸入";$("incomeName").value=selected}
+  $("incomeName").classList.toggle("hide",$("incomeSource").value!=="其他／自行輸入");
 }
 function render(){
   let d=entries(),b=balances(d);
@@ -337,7 +392,7 @@ function render(){
 
   let run={},ini=initial(),after={};ACC.forEach(a=>run[a]=Number(ini[a]||0));
   d.slice().sort((x,y)=>x.id-y.id).forEach(x=>{if(x.type==="expense"){run[x.account]-=Number(x.amount||0);after[x.id]=`${x.account} ${money(run[x.account])}`}else if(x.type==="income"){run[x.account]+=Number(x.amount||0);after[x.id]=`${x.account} ${money(run[x.account])}`}else{run[x.from]-=Number(x.amount||0);run[x.to]+=Number(x.amount||0);after[x.id]=`${x.from} ${money(run[x.from])} ／ ${x.to} ${money(run[x.to])}`}});
-  let type=$("recordTypeFilter").value||"all",shown=d.filter(x=>type==="all"||x.type===type).filter(x=>!categoryFilter||(x.type==="expense"&&x.category===categoryFilter));
+  let type=$("recordTypeFilter").value||"all",shown=d.filter(x=>type==="all"||x.type===type).filter(x=>!categoryFilter||x.category===categoryFilter);
   $("list").innerHTML=shown.length?"":'<div class="empty">這個篩選目前沒有紀錄</div>';
   shown.slice(0,100).forEach(x=>{
     let dt=new Date(x.ts),cls=x.type,sign=x.type==="expense"?"-":x.type==="income"?"+":"↔";
@@ -348,7 +403,7 @@ function render(){
   document.querySelectorAll(".del").forEach(x=>x.onclick=()=>{if(confirm("確定刪除這筆紀錄？")){localStorage.setItem("ql3_entries",JSON.stringify(entries().filter(y=>y.id!==Number(x.dataset.id))));render()}});
 }
 function backupJSON(){
-  const payload={app:"記一夏",version:7,exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
+  const payload={app:"記一夏",version:"7.8",exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");
   const d=new Date(),pad=n=>String(n).padStart(2,"0");a.href=u;a.download=`記一夏_備份_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;a.click();URL.revokeObjectURL(u);
 }
@@ -375,8 +430,17 @@ $("editInitial").addEventListener("click",()=>{$("setupCard").classList.remove("
 $("tabExpense").addEventListener("click",()=>setMode("expense"));$("tabIncome").addEventListener("click",()=>setMode("income"));$("tabTransfer").addEventListener("click",()=>setMode("transfer"));
 $("saveEntry").addEventListener("click",add);$("exportCsv").addEventListener("click",exportCSV);
 $("backupJson").addEventListener("click",backupJSON);$("restoreJson").addEventListener("click",()=>$("restoreFile").click());$("restoreFile").addEventListener("change",e=>restoreJSONFile(e.target.files[0]));
-$("clearFilter").addEventListener("click",()=>{categoryFilter="";render()});$("recordTypeFilter").addEventListener("change",render);
-$("closeEdit").addEventListener("click",closeEdit);$("saveEdit").addEventListener("click",saveEdit);$("editModal").addEventListener("click",e=>{if(e.target===$("editModal"))closeEdit()});
+const recordCats=[...new Set([...EC,...IC,"帳戶互轉","提款","存款"])];
+$("recordCategoryFilter").innerHTML='<option value="">全部分類</option>'+recordCats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+$("clearFilter").addEventListener("click",()=>{categoryFilter="";$("recordCategoryFilter").value="";render()});
+$("recordTypeFilter").addEventListener("change",render);
+$("recordCategoryFilter").addEventListener("change",e=>{categoryFilter=e.target.value;render()});
+$("incomeCategory").addEventListener("change",()=>{ $("incomeName").value=""; $("incomeCategory").innerHTML=IC.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+syncIncomeSource("");setIncomeCategoryFromSource(); });
+$("incomeSource").addEventListener("change",()=>{setIncomeCategoryFromSource(); $("incomeName").classList.toggle("hide",$("incomeSource").value!=="其他／自行輸入"); if($("incomeSource").value!=="其他／自行輸入")$("incomeName").value=""; });
+syncIncomeSource("");
+
+$("closeEdit").addEventListener("click",e=>{e.preventDefault();e.stopPropagation();closeEdit()});$("cancelEdit").addEventListener("click",closeEdit);$("saveEdit").addEventListener("click",saveEdit);$("editCategory").addEventListener("change",()=>syncEditMerchant(""));$("editMerchant").addEventListener("change",()=>{$("editName").classList.toggle("hide",$("editMerchant").value!=="其他／自行輸入");if($("editMerchant").value!=="其他／自行輸入")$("editName").value="";});$("editModal").addEventListener("click",e=>{if(e.target===$("editModal"))closeEdit()});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("editModal").classList.contains("hide"))closeEdit()});
 render();
 if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 </script></body></html>
