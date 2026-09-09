@@ -57,7 +57,7 @@ body.modalOpen{overflow:hidden}
   <div class="apple">◉</div>
   <div>
     <div class="eyebrow">MONEY LOG — EST. 2026</div>
-    <h1>記一夏</h1>
+    <h1>記一夏 <span style="font-size:.42em;font-weight:700;opacity:.55;vertical-align:middle">V7</span></h1>
     <div class="sub">YOUR MONEY, YOUR STORY.</div>
   </div>
   <div class="windowBadge"><span>● ● ●</span><b>GOOD MONEY<br>BETTER DAYS</b></div>
@@ -209,24 +209,36 @@ const EC=["飲食","交通","購物","娛樂","日用品","醫療","學習","繳
 const IC=["薪資","家人給予","退款","獎金／補助","委託收入","投資收入","其他收入"];
 const COLORS=["#b9a0d4","#e9b987","#cfbde1","#f2cda7","#9f87bd","#dca66f","#d9c9e8","#f7dcc1","#8f76aa","#c9915d","#e8def0"];
 const DEFAULT_MERCHANTS={
-"飲食":["7-ELEVEN","全家","麥當勞","星巴克","50嵐","Uber Eats","foodpanda"],
-"交通":["台鐵","高鐵","捷運","公車","Uber","計程車","加油"],
-"購物":["蝦皮","淘寶","momo","PChome","誠品","百貨"],
-"娛樂":["電影","KTV","遊戲","展覽","演唱會"],
-"日用品":["全聯","家樂福","屈臣氏","康是美","寶雅"],
-"醫療":["診所","醫院","藥局","牙醫"],
-"學習":["書店","影印店","課程","文具"],
-"繳費":["電信費","水費","電費","網路費","保險"],
-"委託":["繪圖委託","代購","手作委託"],
-"投資":["股票","基金","定期定額"],
-"其他":["其他"]
+"飲食":["小七","全家","麥當勞","五十嵐","樂台"],
+"交通":["加油","換機油","換輪胎"],
+"購物":["鞋子","衣服","包包"],
+"娛樂":["夏以晝","齊司禮","夏油傑","乾青宗","伊耳謎"],
+"日用品":["寶雅","全聯"],
+"醫療":[],
+"學習":[],
+"繳費":[],
+"委託":[],
+"投資":["ETF"],
+"其他":[]
 };
 const $=x=>document.getElementById(x);
 let mode="expense", categoryFilter="", editingId=null;
 const entries=()=>JSON.parse(localStorage.getItem("ql3_entries")||"[]");
 const initial=()=>JSON.parse(localStorage.getItem("ql3_initial")||"{}");
-const merchantData=()=>JSON.parse(localStorage.getItem("ql6_merchants")||"null")||structuredClone(DEFAULT_MERCHANTS);
-const saveMerchants=o=>localStorage.setItem("ql6_merchants",JSON.stringify(o));
+function merchantData(){
+  const current=JSON.parse(localStorage.getItem("ql7_merchants")||"null");
+  if(current) return current;
+  const old=JSON.parse(localStorage.getItem("ql6_merchants")||"null")||{};
+  const merged={};
+  EC.forEach(cat=>{
+    const prior=Array.isArray(old[cat])?old[cat]:[];
+    const fresh=DEFAULT_MERCHANTS[cat]||[];
+    merged[cat]=[...new Set([...fresh,...prior])];
+  });
+  localStorage.setItem("ql7_merchants",JSON.stringify(merged));
+  return merged;
+}
+const saveMerchants=o=>localStorage.setItem("ql7_merchants",JSON.stringify(o));
 const money=n=>"$"+Number(n||0).toLocaleString("zh-TW");
 function fill(e,a){e.innerHTML="";a.forEach(x=>{let o=document.createElement("option");o.textContent=o.value=x;e.appendChild(o)})}
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
@@ -336,14 +348,14 @@ function render(){
   document.querySelectorAll(".del").forEach(x=>x.onclick=()=>{if(confirm("確定刪除這筆紀錄？")){localStorage.setItem("ql3_entries",JSON.stringify(entries().filter(y=>y.id!==Number(x.dataset.id))));render()}});
 }
 function backupJSON(){
-  const payload={app:"記一夏",version:6,exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
+  const payload={app:"記一夏",version:7,exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");
   const d=new Date(),pad=n=>String(n).padStart(2,"0");a.href=u;a.download=`記一夏_備份_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;a.click();URL.revokeObjectURL(u);
 }
 function restoreJSONFile(file){
   if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!data||typeof data!=="object"||!Array.isArray(data.entries)||typeof data.initial!=="object")throw new Error("格式不符");
   if(!confirm(`將還原 ${data.entries.length} 筆紀錄，並覆蓋目前資料。確定要繼續嗎？`))return;
-  localStorage.setItem("ql3_initial",JSON.stringify(data.initial));localStorage.setItem("ql3_entries",JSON.stringify(data.entries));if(data.merchants)localStorage.setItem("ql6_merchants",JSON.stringify(data.merchants));buildInit();$("setupCard").classList.add("hide");syncMerchantOptions();render();alert("資料已還原完成")}catch(e){alert("這個檔案不是有效的「記一夏」備份檔。")} $("restoreFile").value=""};r.readAsText(file);
+  localStorage.setItem("ql3_initial",JSON.stringify(data.initial));localStorage.setItem("ql3_entries",JSON.stringify(data.entries));if(data.merchants)localStorage.setItem("ql7_merchants",JSON.stringify(data.merchants));buildInit();$("setupCard").classList.add("hide");syncMerchantOptions();render();alert("資料已還原完成")}catch(e){alert("這個檔案不是有效的「記一夏」備份檔。")} $("restoreFile").value=""};r.readAsText(file);
 }
 function exportCSV(){let d=entries();if(!d.length){alert("目前沒有資料");return}let rows=[["日期時間","類型","金額","名稱","分類","付款方式","帳戶/轉出","轉入","備註"]];d.slice().reverse().forEach(x=>rows.push([new Date(x.ts).toLocaleString("zh-TW"),x.type==="expense"?"支出":x.type==="income"?"收入":"轉帳",x.amount,x.name,x.category,x.payment,x.account||x.from||"",x.to||"",x.note||""]));let csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\n"),u=URL.createObjectURL(new Blob([csv],{type:"text/csv"})),a=document.createElement("a");a.href=u;a.download="記一夏_記帳資料.csv";a.click();URL.revokeObjectURL(u)}
 
