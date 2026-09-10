@@ -61,7 +61,7 @@ body.modalOpen{overflow:hidden}
   <div class="apple">◉</div>
   <div>
     <div class="eyebrow">MONEY LOG — EST. 2026</div>
-    <h1>記一夏 <span style="font-size:.42em;font-weight:700;opacity:.55;vertical-align:middle">V7.8</span></h1>
+    <h1>記一夏 <span style="font-size:.42em;font-weight:700;opacity:.55;vertical-align:middle">V7.9</span></h1>
     <div class="sub">YOUR MONEY, YOUR STORY.</div>
   </div>
   <div class="windowBadge"><span>● ● ●</span><b>GOOD MONEY<br>BETTER DAYS</b></div>
@@ -165,6 +165,9 @@ body.modalOpen{overflow:hidden}
         <option value="">全部分類</option>
       </select>
     </div>
+  </div>
+  <div style="margin:12px 0 8px">
+    <input id="recordSearch" type="search" placeholder="搜尋店家、分類、備註、付款方式、帳戶…" autocomplete="off">
   </div>
   <div id="activeFilter" class="activeFilter hide"></div>
   <div id="list"></div>
@@ -392,8 +395,17 @@ function render(){
 
   let run={},ini=initial(),after={};ACC.forEach(a=>run[a]=Number(ini[a]||0));
   d.slice().sort((x,y)=>x.id-y.id).forEach(x=>{if(x.type==="expense"){run[x.account]-=Number(x.amount||0);after[x.id]=`${x.account} ${money(run[x.account])}`}else if(x.type==="income"){run[x.account]+=Number(x.amount||0);after[x.id]=`${x.account} ${money(run[x.account])}`}else{run[x.from]-=Number(x.amount||0);run[x.to]+=Number(x.amount||0);after[x.id]=`${x.from} ${money(run[x.from])} ／ ${x.to} ${money(run[x.to])}`}});
-  let type=$("recordTypeFilter").value||"all",shown=d.filter(x=>type==="all"||x.type===type).filter(x=>!categoryFilter||x.category===categoryFilter);
-  $("list").innerHTML=shown.length?"":'<div class="empty">這個篩選目前沒有紀錄</div>';
+  let type=$("recordTypeFilter").value||"all",
+      q=($("recordSearch").value||"").trim().toLowerCase(),
+      shown=d.filter(x=>type==="all"||x.type===type)
+             .filter(x=>!categoryFilter||x.category===categoryFilter)
+             .filter(x=>{
+               if(!q)return true;
+               const hay=[x.name,x.category,x.note,x.payment,x.account,x.from,x.to,x.type]
+                 .filter(Boolean).join(" ").toLowerCase();
+               return hay.includes(q);
+             });
+  $("list").innerHTML=shown.length?"":'<div class="empty">找不到符合條件的紀錄</div>';
   shown.slice(0,100).forEach(x=>{
     let dt=new Date(x.ts),cls=x.type,sign=x.type==="expense"?"-":x.type==="income"?"+":"↔";
     let detail=x.type==="transfer"?`${x.category} · ${x.from} → ${x.to}`:`${x.category} · ${x.payment} · ${x.account}`;
@@ -403,7 +415,7 @@ function render(){
   document.querySelectorAll(".del").forEach(x=>x.onclick=()=>{if(confirm("確定刪除這筆紀錄？")){localStorage.setItem("ql3_entries",JSON.stringify(entries().filter(y=>y.id!==Number(x.dataset.id))));render()}});
 }
 function backupJSON(){
-  const payload={app:"記一夏",version:"7.8",exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
+  const payload={app:"記一夏",version:"7.9",exportedAt:new Date().toISOString(),initial:initial(),entries:entries(),merchants:merchantData()};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"}),u=URL.createObjectURL(blob),a=document.createElement("a");
   const d=new Date(),pad=n=>String(n).padStart(2,"0");a.href=u;a.download=`記一夏_備份_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}.json`;a.click();URL.revokeObjectURL(u);
 }
@@ -435,6 +447,7 @@ $("recordCategoryFilter").innerHTML='<option value="">全部分類</option>'+rec
 $("clearFilter").addEventListener("click",()=>{categoryFilter="";$("recordCategoryFilter").value="";render()});
 $("recordTypeFilter").addEventListener("change",render);
 $("recordCategoryFilter").addEventListener("change",e=>{categoryFilter=e.target.value;render()});
+$("recordSearch").addEventListener("input",render);
 $("incomeCategory").addEventListener("change",()=>{ $("incomeName").value=""; $("incomeCategory").innerHTML=IC.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
 syncIncomeSource("");setIncomeCategoryFromSource(); });
 $("incomeSource").addEventListener("change",()=>{setIncomeCategoryFromSource(); $("incomeName").classList.toggle("hide",$("incomeSource").value!=="其他／自行輸入"); if($("incomeSource").value!=="其他／自行輸入")$("incomeName").value=""; });
